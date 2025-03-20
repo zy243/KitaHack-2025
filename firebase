@@ -1,0 +1,40 @@
+function doPost(e) {
+  var firebaseUrl = "https://chatbot-be4c3-default-rtdb.asia-southeast1.firebasedatabase.app/1m1c4lynN5YrtcKOjzvwdGk1xCma5uI2aVpq6jnTG9To/Sheet1.json"; 
+  var data = JSON.parse(e.postData.contents);
+  
+  var userQuery = data.queryResult.queryText.trim(); // Get user input and trim spaces
+  var responseText = "Sorry, I don’t have an answer for that."; // Default response
+
+  Logger.log("User input: " + userQuery);  // Log user query
+
+  try {
+    var firebaseResponse = UrlFetchApp.fetch(firebaseUrl, { muteHttpExceptions: true });
+    
+    Logger.log("Firebase response code: " + firebaseResponse.getResponseCode());
+
+    if (firebaseResponse.getResponseCode() == 200) {
+      var firebaseData = JSON.parse(firebaseResponse.getContentText());
+      Logger.log("Firebase data: " + JSON.stringify(firebaseData));  // Log fetched Firebase data
+
+      for (var key in firebaseData) {
+        Logger.log("Checking question: " + key);  // Log each question being checked
+        
+        if (key.toLowerCase().trim() === userQuery.toLowerCase()) {
+          responseText = firebaseData[key].Answers; // Get the answer
+          Logger.log("Match found! Answer: " + responseText);
+          break;
+        }
+      }
+    } else {
+      Logger.log("Failed to fetch Firebase data, error code: " + firebaseResponse.getResponseCode());
+    }
+  } catch (error) {
+    Logger.log("Error: " + error.message);
+  }
+
+  var jsonResponse = {
+    "fulfillmentText": responseText
+  };
+
+  return ContentService.createTextOutput(JSON.stringify(jsonResponse)).setMimeType(ContentService.MimeType.JSON);
+}
